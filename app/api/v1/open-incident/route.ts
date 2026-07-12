@@ -1,27 +1,29 @@
 import crypto from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
 import { ensureSchema, insertIncident } from "../../../../src/db";
 import { openIncidentRequest, validateIncidentUrls } from "../../../../src/incidents";
+import { paidRoute, paidRouteConfig } from "../../../../src/payments";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+async function handler(request: NextRequest) {
   const requestId = crypto.randomUUID();
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json({ requestId, error: "Request body must be valid JSON" }, { status: 400 });
+    return NextResponse.json({ requestId, error: "Request body must be valid JSON" }, { status: 400 });
   }
 
   const parsed = openIncidentRequest.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ requestId, error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ requestId, error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
   }
 
   try {
     await validateIncidentUrls(parsed.data);
   } catch (error) {
-    return Response.json({ requestId, error: error instanceof Error ? error.message : "Invalid URL" }, { status: 400 });
+    return NextResponse.json({ requestId, error: error instanceof Error ? error.message : "Invalid URL" }, { status: 400 });
   }
 
   const id = crypto.randomUUID();
@@ -43,10 +45,10 @@ export async function POST(request: Request) {
     await ensureSchema();
     await insertIncident(incident);
   } catch {
-    return Response.json({ requestId, error: "Incident could not be persisted" }, { status: 503 });
+    return NextResponse.json({ requestId, error: "Incident could not be persisted" }, { status: 503 });
   }
 
-  return Response.json({
+  return NextResponse.json({
     requestId,
     incidentId: id,
     publicSlug,
@@ -54,3 +56,5 @@ export async function POST(request: Request) {
     nextActions: ["Request human evidence", "Run an agent availability probe", "Generate a preliminary continuity record"],
   }, { status: 201 });
 }
+
+export const POST = paidRoute(handler, paidRouteConfig("/api/v1/open-incident", "$0.05", "Open a structured incident for a failed or disputed agent delivery."));

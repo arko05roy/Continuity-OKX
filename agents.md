@@ -30,6 +30,7 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Continuity records include a confidence level and only accepted, valid, hash-matched evidence can affect their verdict; records without sufficient accepted evidence remain `INCONCLUSIVE`.
 - There is no seed data, fake evidence, fake uptime history, fake transaction hash, or simulated payment.
 - Payment is not enabled yet. Until OKX credentials and a public HTTPS deployment exist, the endpoint is a free A2MCP-compatible service, not a paid x402 service.
+- The official OKX Next.js x402 adapter is installed and paid protection is wired for status checks, incident opening, evidence-task requests, and record issuance. It remains fail-closed until `PAY_TO` and HTTPS `PUBLIC_BASE_URL` are configured alongside the OKX credentials.
 
 ## Source-backed constraints
 
