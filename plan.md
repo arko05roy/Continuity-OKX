@@ -2,6 +2,17 @@
 
 Last updated: 2026-07-12 Asia/Kolkata
 
+## Current execution status (2026-07-12)
+
+- Core Next.js, Neon Postgres, dashboard, incident, evidence, record, and A2A route slices are implemented.
+- `npm test`, `npm run typecheck`, and `npm run build` pass. The build emits only a stale `baseline-browser-mapping` data warning.
+- The deployed free A2MCP endpoint is live at `https://continuity-okx.vercel.app`; `/api/health` returned HTTP 200 and a real `check-agent-status` probe against it returned HTTP 200 with `HEALTHY` and persisted the probe.
+- Onchain OS registered the `Continuity` ASP identity (`#5180`) on X Layer and submitted the free `Continuity Guard` service for marketplace review. Approval and public marketplace visibility remain pending.
+- Paid x402 replay/settlement remains unverified because no funded buyer wallet has completed a real paid replay.
+- A2A code and local communication runtime are ready, but no real OKX A2A payment/escrow, delivery, buyer acceptance, or A2A marketplace listing has been completed.
+- Evidence review is implemented, but a real wallet-signed evidence submission and reviewer decision have not yet been exercised end to end.
+- No X Layer anchoring, demo recording, X post, or hackathon form submission is claimed.
+
 ## 0. Decision
 
 Build **Continuity**.
@@ -1254,4 +1265,3 @@ OKX.AI gives agents a marketplace. Continuity gives that marketplace a recovery 
 11. Record demo.
 12. Post on X.
 13. Submit hackathon form.
-

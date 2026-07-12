@@ -39,14 +39,16 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Continuity records include a confidence level and only accepted, valid, hash-matched evidence can affect their verdict; records without sufficient accepted evidence remain `INCONCLUSIVE`.
 - There is no seed data, fake evidence, fake uptime history, fake transaction hash, or simulated payment.
 - A2MCP mode is explicit: `A2MCP_MODE=free` runs status checks, incident opening, evidence-task requests, and record issuance without x402; `A2MCP_MODE=paid` uses the official OKX Next.js x402 adapter. Paid replay and settlement have not yet been verified with a real buyer wallet.
+- On 2026-07-12, Onchain OS registered the `Continuity` ASP identity on X Layer and submitted its free `Continuity Guard` A2MCP service for marketplace review. Approval and public marketplace visibility are still pending.
+- On 2026-07-12, the deployed free endpoint returned HTTP 200 for a real reliability probe against `https://continuity-okx.vercel.app/api/health`, and the probe was persisted in Neon Postgres.
 - A2A intake/quote/acceptance state is persisted, but acceptance remains `ACCEPTED_PENDING_PAYMENT`; no escrow, payment, delivery, or arbitration is simulated.
 
 ## External status that must remain explicit
 
 - A2MCP paid replay/settlement: `UNVERIFIED` until a real buyer wallet pays and the endpoint returns the replayed result.
-- A2MCP marketplace listing: `NOT SUBMITTED`; no OKX.AI approval or listing is claimed.
+- A2MCP marketplace listing: `SUBMITTED_FOR_REVIEW`; the `Continuity` ASP identity and free `Continuity Guard` service were submitted through Onchain OS, but no OKX.AI approval or public marketplace visibility is claimed yet.
 - A2A marketplace listing: `NOT SUBMITTED`; the negotiation/execution agent workflow is not yet ready to claim as live.
-- Evidence review: reviewer queue and accept/reject workflow are implemented, but `REVIEWER_TOKEN` must be configured and a real reviewer action has not yet been exercised.
+- Evidence review: reviewer queue and accept/reject workflow are implemented, but a real signed evidence submission and reviewer action have not yet been exercised end to end.
 
 ## Source-backed constraints
 
@@ -58,11 +60,11 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 
 ## Next safe slices
 
-1. Verify one real paid A2MCP replay/settlement with a buyer wallet.
-2. Connect a real OKX A2A payment/escrow verification adapter using `A2A_EXECUTION_TOKEN`.
-3. Exercise A2A execution and delivery with a real paid investigation and real accepted evidence.
-4. Submit truthful A2MCP listing metadata through Onchain OS; register A2A only after its agent workflow can negotiate and deliver.
-5. Record the demo and submit the hackathon materials using real endpoint activity and real signed evidence.
+1. Await OKX review for the submitted free A2MCP service; record the approval email and marketplace URL only if received.
+2. Verify one real paid A2MCP replay/settlement with a funded buyer wallet, if a paid demonstration is required.
+3. Connect a real OKX A2A payment/escrow verification adapter using `A2A_EXECUTION_TOKEN`.
+4. Exercise A2A execution and delivery with a real paid investigation and real accepted evidence, then register/list A2A only if that workflow is ready.
+5. Record the demo and submit the hackathon materials using real endpoint activity, real signed evidence, and truthful review status.
 
 ## Verification
 

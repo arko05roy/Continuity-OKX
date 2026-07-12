@@ -43,6 +43,14 @@ Set `DATABASE_URL` to a real Neon connection string before using the probe route
 
 The implementation decisions are tracked in [`agents.md`](agents.md) and the product plan in [`plan.md`](plan.md).
 
+## External launch status
+
+- The free `Continuity Guard` A2MCP service is deployed at `https://continuity-okx.vercel.app/api/v1/check-agent-status` and has passed a real HTTP 200 reliability probe against the deployed health endpoint.
+- The `Continuity` ASP identity is registered on X Layer and submitted for OKX.AI marketplace review; approval and public marketplace visibility are pending.
+- `A2MCP_MODE=free` is active. Paid x402 replay/settlement has not been verified with a funded buyer wallet.
+- A2A code and communication runtime are ready, but A2A registration, escrow/payment verification, delivery, buyer acceptance, and marketplace approval are not claimed.
+- No demo, X post, or hackathon submission is claimed.
+
 Launch and marketplace preparation material is in [`docs/`](docs/), including listing copy, the demo script, and an external-state launch checklist. These documents do not represent completed registration, payment, deployment, or approval.
 
 Evidence submissions are not fabricated or auto-accepted. Text/content supplied in the request is hashed by the server; externally hosted content is accepted only with its caller-supplied SHA-256 digest and remains unverified until review. The EIP-712 domain is `Continuity Evidence`, version `1`, on X Layer chain ID `196`.
