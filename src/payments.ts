@@ -7,6 +7,11 @@ import type { NextRequest, NextResponse } from "next/server";
 export const OKX_NETWORK = "eip155:196" as const;
 export const OKX_USDT0 = "0x779ded0c9e1022225f8e0630b35a9b54be713736" as const;
 
+export function a2mcpMode(): "free" | "paid" | "invalid" {
+  const mode = (process.env.A2MCP_MODE ?? "free").trim().toLowerCase();
+  return mode === "free" || mode === "paid" ? mode : "invalid";
+}
+
 type PaidHandler = (request: NextRequest) => Promise<NextResponse>;
 type PaidRoute = Parameters<typeof withX402>[1];
 
@@ -34,6 +39,14 @@ function paymentServer() {
 }
 
 export function paidRoute(handler: PaidHandler, route: PaidRoute): PaidHandler {
+  const mode = a2mcpMode();
+  if (mode === "free") return handler;
+  if (mode === "invalid") {
+    return async () => {
+      const { NextResponse } = await import("next/server");
+      return NextResponse.json({ error: "A2MCP_MODE must be either free or paid" }, { status: 503 });
+    };
+  }
   const readiness = paymentReadiness();
   if (!readiness.ready) {
     return async () => {

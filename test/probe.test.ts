@@ -5,6 +5,7 @@ import { openIncidentRequest, requestEvidenceTask, submitEvidenceRequest } from 
 import { generateContinuityRecord, hashRecord } from "../src/records";
 import { buildReliabilityProfile } from "../src/reliability";
 import { a2aInvestigationRequest, quoteFitsBudget, transitionA2A } from "../src/a2a";
+import { a2mcpMode } from "../src/payments";
 
 test("rejects non-HTTPS endpoints", async () => {
   await assert.rejects(() => assertSafeEndpoint("http://example.com"), /HTTPS/);
@@ -103,4 +104,14 @@ test("A2A quote and acceptance do not imply payment", () => {
   assert.equal(transitionA2A("REQUESTED", "QUOTE"), "QUOTED");
   assert.equal(transitionA2A("QUOTED", "ACCEPT"), "ACCEPTED_PENDING_PAYMENT");
   assert.equal(transitionA2A("ACCEPTED_PENDING_PAYMENT", "PAYMENT_VERIFIED"), "PAYMENT_VERIFIED");
+});
+
+test("A2MCP defaults to free mode and requires explicit paid opt-in", () => {
+  const previous = process.env.A2MCP_MODE;
+  delete process.env.A2MCP_MODE;
+  assert.equal(a2mcpMode(), "free");
+  process.env.A2MCP_MODE = "paid";
+  assert.equal(a2mcpMode(), "paid");
+  if (previous === undefined) delete process.env.A2MCP_MODE;
+  else process.env.A2MCP_MODE = previous;
 });

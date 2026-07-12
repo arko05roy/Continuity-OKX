@@ -38,7 +38,7 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Evidence submissions verify the supplied EIP-712 signature against the caller-supplied EVM wallet using the Continuity Evidence domain on X Layer chain ID 196. Invalid signatures are persisted as pending review with `signatureValid: false`, never treated as accepted evidence.
 - Continuity records include a confidence level and only accepted, valid, hash-matched evidence can affect their verdict; records without sufficient accepted evidence remain `INCONCLUSIVE`.
 - There is no seed data, fake evidence, fake uptime history, fake transaction hash, or simulated payment.
-- The official OKX Next.js x402 adapter is installed and paid protection is wired for status checks, incident opening, evidence-task requests, and record issuance. The deployed service returns genuine `402 Payment Required` challenges on X Layer; paid replay and settlement have not yet been verified with a real buyer wallet.
+- A2MCP mode is explicit: `A2MCP_MODE=free` runs status checks, incident opening, evidence-task requests, and record issuance without x402; `A2MCP_MODE=paid` uses the official OKX Next.js x402 adapter. Paid replay and settlement have not yet been verified with a real buyer wallet.
 - A2A intake/quote/acceptance state is persisted, but acceptance remains `ACCEPTED_PENDING_PAYMENT`; no escrow, payment, delivery, or arbitration is simulated.
 
 ## External status that must remain explicit

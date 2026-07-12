@@ -26,7 +26,7 @@ The API currently exposes free A2MCP-compatible endpoints through Next.js route 
 - `POST /api/v1/a2a/investigations/:id/buyer-response` records a trusted buyer response; arbitration remains a separate OKX external process.
 - `/records/:recordId` renders a public Continuity Record from persisted data, including confidence, evidence counts, recommendations, and the stored SHA-256 hash.
 - `/evidence-tasks/:taskId` provides a real browser-wallet EIP-712 signing flow for text evidence on X Layer; submissions remain pending review.
-- Paid route protection is wired through the official OKX Next.js x402 adapter. It uses X Layer `eip155:196`, exact payment, and USDT0; it fails closed with `503` until all payment credentials, `PAY_TO`, and an HTTPS `PUBLIC_BASE_URL` are configured.
+- A2MCP mode is explicit: `A2MCP_MODE=free` returns the result directly with no x402 payment, while `A2MCP_MODE=paid` protects the paid routes through the official OKX Next.js x402 adapter on X Layer `eip155:196` using USDT0.
 
 No records are seeded, and no payment is enabled.
 
