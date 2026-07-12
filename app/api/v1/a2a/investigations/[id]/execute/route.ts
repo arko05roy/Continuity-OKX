@@ -17,9 +17,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     await ensureSchema();
     const investigation = await findA2AInvestigation(id);
     if (!investigation) return NextResponse.json({ requestId, error: "A2A investigation not found" }, { status: 404 });
-    if (investigation.status !== "PAYMENT_VERIFIED" || !["VERIFIED", "SETTLED"].includes(investigation.paymentStatus)) return NextResponse.json({ requestId, error: "Verified payment is required before execution" }, { status: 409 });
+    if (!["PAYMENT_VERIFIED", "EVIDENCE_REQUIRED"].includes(investigation.status) || !["VERIFIED", "SETTLED"].includes(investigation.paymentStatus)) return NextResponse.json({ requestId, error: "Verified payment is required before execution" }, { status: 409 });
     if (!process.env.PUBLIC_BASE_URL) return NextResponse.json({ requestId, error: "PUBLIC_BASE_URL is required for A2A delivery" }, { status: 503 });
-    const inProgress = { ...investigation, status: transitionA2A("PAYMENT_VERIFIED", "START"), updatedAt: new Date().toISOString() };
+    const inProgress = { ...investigation, status: transitionA2A(investigation.status as "PAYMENT_VERIFIED" | "EVIDENCE_REQUIRED", "START"), updatedAt: new Date().toISOString() };
     await updateA2AInvestigation(inProgress);
 
     if (investigation.endpointUrl) {
