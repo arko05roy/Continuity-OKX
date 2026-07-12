@@ -4,7 +4,8 @@
   "private": true,
   "description": "Reliability, evidence, and recovery infrastructure for OKX.AI agents.",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "next build",
+    "typecheck": "tsc -p tsconfig.json",
     "start": "next start",
     "dev": "next dev",
     "test": "tsx --test test/**/*.test.ts"
