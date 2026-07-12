@@ -3,6 +3,7 @@ import test from "node:test";
 import { assertSafeEndpoint, sha256Text } from "../src/probe";
 import { openIncidentRequest, requestEvidenceTask, submitEvidenceRequest } from "../src/incidents";
 import { generateContinuityRecord, hashRecord } from "../src/records";
+import { buildReliabilityProfile } from "../src/reliability";
 
 test("rejects non-HTTPS endpoints", async () => {
   await assert.rejects(() => assertSafeEndpoint("http://example.com"), /HTTPS/);
@@ -72,4 +73,16 @@ test("record generation excludes pending and invalid evidence", () => {
   assert.equal(record.verdict, "INCONCLUSIVE");
   assert.equal(record.evidenceSummary.acceptedSubmissions, 0);
   assert.equal(hashRecord({ incidentId: incident.id, agentName: incident.agentName, recordType: "INCIDENT_RECORD", ...record }).length, 64);
+});
+
+test("reliability profile stays inconclusive when records are insufficient", () => {
+  const profile = buildReliabilityProfile("Observed agent", [{
+    id: "probe-1", agentName: "Observed agent", endpointUrl: "https://example.com", probeType: "UPTIME", status: "PASS",
+    startedAt: "2026-07-12T00:00:00.000Z", completedAt: "2026-07-12T00:00:01.000Z", summary: "Reached endpoint.",
+    statusCode: 200, latencyMs: 100, contentType: "application/json",
+  }], [], []);
+  assert.equal(profile.status, "INCONCLUSIVE");
+  assert.equal(profile.continuityScore, null);
+  assert.equal(profile.signals.uptime, "PASS");
+  assert.equal(profile.signals.validatedRecords, 0);
 });

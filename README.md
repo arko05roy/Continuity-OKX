@@ -15,6 +15,7 @@ The API currently exposes free A2MCP-compatible endpoints through Next.js route 
 - `POST /api/v1/issue-continuity-record` generates and persists a record from the incident and its persisted evidence submissions; only accepted, valid signed evidence can affect the verdict.
 - `GET /api/v1/records/:id` retrieves a persisted Continuity Record.
 - `GET /api/v1/dashboard` aggregates persisted probes, incidents, evidence tasks, and records for the operational dashboard.
+- `GET /api/v1/agents/:id/reliability-profile` returns a profile derived from persisted records; it reports `INCONCLUSIVE` with a null score when the available evidence is insufficient.
 
 No records are seeded, and no payment is enabled.
 
