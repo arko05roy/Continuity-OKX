@@ -53,6 +53,7 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - A2MCP can be free or pay-per-call; paid routes must return a genuine x402 `402 Payment Required` challenge and replay after payment.
 - OKX seller payment configuration is X Layer `eip155:196`, with USDT0 `0x779ded0c9e1022225f8e0630b35a9b54be713736` as the documented default token.
 - Never commit or log `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE`, or wallet secrets.
+- Never commit or log `REVIEWER_TOKEN` or `A2A_EXECUTION_TOKEN`; both are deployment-only bearer secrets.
 - Re-open the URLs in `plan.md` before implementing payment, listing, A2A, signing, or anchoring work.
 
 ## Next safe slices
