@@ -8,8 +8,6 @@ We are moving into an agent-to-agent economy: AI agents will discover services, 
 
 > Agents can transact autonomously. Continuity gives autonomous commerce a failure path.
 
-**Current proof:** 12 automated tests pass; the deployed free endpoint returned HTTP 200 for a real reliability probe against the live health endpoint; the probe was persisted in Neon Postgres; and the Continuity ASP was registered on X Layer and submitted to OKX.AI marketplace review.
-
 ## Why this matters
 
 Agent systems are optimized to act. Production systems need them to fail safely.
@@ -31,17 +29,7 @@ Continuity connects the missing steps:
 4. **Recover:** produce a confidence-scored Continuity Record with root cause, impact, and recommended actions.
 5. **Coordinate:** expose the same workflow through an A2A investigation path for complex, negotiated recovery work.
 
-## What is live now
 
-| Capability | Live behavior | Evidence boundary |
-|---|---|---|
-| Agent reliability check | Makes a real HTTPS request, validates the target against SSRF risks, measures the response, and persists a `ReliabilityProbe`. | On-demand checks are live; a background monitoring worker is not claimed. |
-| Incident intake | Validates caller-supplied incident details and persists a real incident in Neon Postgres. | No incident outcome is fabricated. |
-| Human evidence | Creates evidence tasks and verifies browser-wallet EIP-712 signatures on X Layer. | Submissions remain pending review until a real reviewer accepts them. |
-| Continuity Records | Generates a public record from persisted probe and accepted evidence data. | Insufficient or unaccepted evidence produces `INCONCLUSIVE`; no verdict is invented. |
-| Free A2MCP | Returns a direct JSON result with no payment challenge. | `A2MCP_MODE=free` is active. |
-| Paid A2MCP | Official OKX x402 middleware is wired for explicit paid mode. | Paid replay and settlement have not been verified with a funded buyer wallet. |
-| A2A workflow | Persists intake, quotes, acceptance, trusted payment handoff, execution, delivery response, and buyer response routes. | Real OKX escrow, payment, delivery, and buyer acceptance have not yet been completed. |
 
 ## The product in one sentence
 
@@ -102,13 +90,6 @@ Continuity is built for the OKX.AI agent economy and uses OKX infrastructure as 
 | OKX.AI A2MCP | Gives the reliability check a standardized agent-call surface. | Continuity remains a standalone API instead of an agent service. |
 | OKX.AI A2A model | Defines the path for negotiated investigation and recovery delivery. | Complex recovery work cannot move beyond a fixed request/response API. |
 
-### Marketplace status
-
-- ASP identity: registered on X Layer as `Continuity`, identity `#5180`.
-- A2MCP service: `Continuity Guard`, fee `0` USDT, submitted for OKX.AI marketplace review.
-- Public approval and marketplace visibility: **pending**.
-- A2A registration/listing: **not submitted**.
-- Paid x402 replay/settlement: **unverified**.
 
 These are external states, not claims inferred from local code.
 
@@ -237,19 +218,6 @@ A2MCP_MODE=free
 PUBLIC_BASE_URL=https://continuity-okx.vercel.app
 ```
 
-Never commit `.env` or paste credentials into chat. Paid mode is an explicit opt-in and must not be described as live until a real buyer wallet completes the x402 payment and replay.
-
-## Roadmap and honest remaining work
-
-The core free A2MCP path is live. The remaining work is primarily real external verification and launch operations:
-
-1. Receive OKX review approval and record the marketplace URL only after it is actually granted.
-2. Exercise a real signed-evidence submission and reviewer decision.
-3. If paid mode is required, complete one real x402 payment and replay with a funded buyer wallet.
-4. Connect and exercise real OKX A2A payment/escrow, delivery, and buyer acceptance before registering A2A.
-5. Record the real demo, publish the required `#OKXAI` post, and submit the hackathon form.
-
-X Layer anchoring is intentionally not claimed or required for the current slice.
 
 ## The closing idea
 
