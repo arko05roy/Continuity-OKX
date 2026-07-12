@@ -24,6 +24,11 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Implemented endpoint: `GET /api/v1/a2a/investigations/:id` for persisted investigation state.
 - Implemented endpoint: `POST /api/v1/a2a/investigations/:id/quote` for budget-bounded quote negotiation.
 - Implemented endpoint: `POST /api/v1/a2a/investigations/:id/accept` for buyer acceptance pending verified payment.
+- Implemented endpoint: `GET /api/v1/evidence-review/queue` for token-protected reviewer access.
+- Implemented endpoint: `POST /api/v1/evidence-submissions/:id/review` for token-protected evidence acceptance/rejection.
+- Implemented endpoint: `POST /api/v1/a2a/investigations/:id/payment-verified` for a trusted OKX payment-verification adapter handoff.
+- Implemented endpoint: `POST /api/v1/a2a/investigations/:id/execute` for payment-gated real probe/evidence/record execution.
+- Implemented endpoint: `POST /api/v1/a2a/investigations/:id/buyer-response` for trusted buyer delivery response recording.
 - Implemented dashboard at `/` with real persisted-data views for agents, incidents, evidence tasks, and records.
 - Implemented public record page at `/records/:recordId`.
 - Implemented verifier page at `/evidence-tasks/:taskId` with real browser-wallet EIP-712 signing on X Layer.
@@ -41,7 +46,7 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - A2MCP paid replay/settlement: `UNVERIFIED` until a real buyer wallet pays and the endpoint returns the replayed result.
 - A2MCP marketplace listing: `NOT SUBMITTED`; no OKX.AI approval or listing is claimed.
 - A2A marketplace listing: `NOT SUBMITTED`; the negotiation/execution agent workflow is not yet ready to claim as live.
-- Evidence review: `PENDING_REVIEW` submissions require a reviewer workflow before they can affect a Continuity Record verdict.
+- Evidence review: reviewer queue and accept/reject workflow are implemented, but `REVIEWER_TOKEN` must be configured and a real reviewer action has not yet been exercised.
 
 ## Source-backed constraints
 
@@ -53,8 +58,8 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 ## Next safe slices
 
 1. Verify one real paid A2MCP replay/settlement with a buyer wallet.
-2. Add evidence review and trusted A2A payment-verification integration.
-3. Build A2A execution and delivery from real probes/evidence into a record.
+2. Connect a real OKX A2A payment/escrow verification adapter using `A2A_EXECUTION_TOKEN`.
+3. Exercise A2A execution and delivery with a real paid investigation and real accepted evidence.
 4. Submit truthful A2MCP listing metadata through Onchain OS; register A2A only after its agent workflow can negotiate and deliver.
 5. Record the demo and submit the hackathon materials using real endpoint activity and real signed evidence.
 

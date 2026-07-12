@@ -58,8 +58,12 @@ export async function ensureSchema() {
     signature_valid BOOLEAN NOT NULL,
     content_hash_matched BOOLEAN,
     review_status TEXT NOT NULL,
+    reviewer_notes TEXT,
+    reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL
   )`;
+  await sql`ALTER TABLE evidence_submissions ADD COLUMN IF NOT EXISTS reviewer_notes TEXT`;
+  await sql`ALTER TABLE evidence_submissions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
   await sql`CREATE TABLE IF NOT EXISTS continuity_records (
     id UUID PRIMARY KEY,
     incident_id UUID NOT NULL REFERENCES incidents(id),
@@ -292,18 +296,19 @@ export async function insertEvidenceSubmission(submission: {
   id: string; taskId: string; incidentId: string; submittedByWallet: string; evidenceType: string;
   contentUri: string | null; contentHash: string; statement: string; statementHash: string;
   signature: string; signedAt: string; signatureValid: boolean; contentHashMatched: boolean | null;
-  reviewStatus: string; createdAt: string;
+  reviewStatus: string; reviewerNotes?: string | null; reviewedAt?: string | null; createdAt: string;
 }) {
   const sql = database();
   await sql`INSERT INTO evidence_submissions (
     id, task_id, incident_id, submitted_by_wallet, evidence_type, content_uri,
     content_hash, statement, statement_hash, signature, signed_at, signature_valid,
-    content_hash_matched, review_status, created_at
+    content_hash_matched, review_status, reviewer_notes, reviewed_at, created_at
   ) VALUES (
     ${submission.id}, ${submission.taskId}, ${submission.incidentId}, ${submission.submittedByWallet},
     ${submission.evidenceType}, ${submission.contentUri}, ${submission.contentHash},
     ${submission.statement}, ${submission.statementHash}, ${submission.signature}, ${submission.signedAt},
-    ${submission.signatureValid}, ${submission.contentHashMatched}, ${submission.reviewStatus}, ${submission.createdAt}
+    ${submission.signatureValid}, ${submission.contentHashMatched}, ${submission.reviewStatus},
+    ${submission.reviewerNotes ?? null}, ${submission.reviewedAt ?? null}, ${submission.createdAt}
   )`;
 }
 
@@ -320,6 +325,8 @@ export type EvidenceSubmissionRecord = {
   signatureValid: boolean;
   contentHashMatched: boolean | null;
   reviewStatus: string;
+  reviewerNotes?: string | null;
+  reviewedAt?: string | null;
   createdAt: string;
 };
 
@@ -327,7 +334,7 @@ export async function findEvidenceSubmissions(incidentId: string): Promise<Evide
   const sql = database();
   const rows = await sql`SELECT id, incident_id, submitted_by_wallet, evidence_type,
     content_uri, content_hash, statement, signature, signed_at, signature_valid,
-    content_hash_matched, review_status, created_at
+    content_hash_matched, review_status, reviewer_notes, reviewed_at, created_at
     FROM evidence_submissions WHERE incident_id = ${incidentId} ORDER BY created_at ASC`;
   return rows.map((row) => {
     const value = row as Record<string, unknown>;
@@ -337,9 +344,52 @@ export async function findEvidenceSubmissions(incidentId: string): Promise<Evide
       contentHash: String(value.content_hash), statement: String(value.statement), signature: String(value.signature),
       signedAt: new Date(String(value.signed_at)).toISOString(), signatureValid: Boolean(value.signature_valid),
       contentHashMatched: value.content_hash_matched === null ? null : Boolean(value.content_hash_matched),
-      reviewStatus: String(value.review_status), createdAt: new Date(String(value.created_at)).toISOString(),
+      reviewStatus: String(value.review_status), reviewerNotes: value.reviewer_notes === null ? null : String(value.reviewer_notes),
+      reviewedAt: value.reviewed_at ? new Date(String(value.reviewed_at)).toISOString() : null,
+      createdAt: new Date(String(value.created_at)).toISOString(),
     };
   });
+}
+
+export async function findEvidenceSubmission(id: string): Promise<EvidenceSubmissionRecord | null> {
+  const sql = database();
+  const rows = await sql`SELECT id, incident_id, submitted_by_wallet, evidence_type, content_uri, content_hash,
+    statement, signature, signed_at, signature_valid, content_hash_matched, review_status, reviewer_notes,
+    reviewed_at, created_at FROM evidence_submissions WHERE id = ${id} LIMIT 1`;
+  if (rows.length === 0) return null;
+  const value = rows[0] as Record<string, unknown>;
+  return {
+    id: String(value.id), incidentId: String(value.incident_id), submittedByWallet: String(value.submitted_by_wallet),
+    evidenceType: String(value.evidence_type), contentUri: value.content_uri === null ? null : String(value.content_uri),
+    contentHash: String(value.content_hash), statement: String(value.statement), signature: String(value.signature),
+    signedAt: new Date(String(value.signed_at)).toISOString(), signatureValid: Boolean(value.signature_valid),
+    contentHashMatched: value.content_hash_matched === null ? null : Boolean(value.content_hash_matched), reviewStatus: String(value.review_status),
+    reviewerNotes: value.reviewer_notes === null ? null : String(value.reviewer_notes), reviewedAt: value.reviewed_at ? new Date(String(value.reviewed_at)).toISOString() : null,
+    createdAt: new Date(String(value.created_at)).toISOString(),
+  };
+}
+
+export async function listPendingEvidenceSubmissions(limit = 100): Promise<EvidenceSubmissionRecord[]> {
+  const sql = database();
+  const rows = await sql`SELECT id, incident_id, submitted_by_wallet, evidence_type, content_uri, content_hash,
+    statement, signature, signed_at, signature_valid, content_hash_matched, review_status, reviewer_notes,
+    reviewed_at, created_at FROM evidence_submissions WHERE review_status = 'PENDING' ORDER BY created_at ASC LIMIT ${limit}`;
+  return rows.map((row) => {
+    const value = row as Record<string, unknown>;
+    return {
+      id: String(value.id), incidentId: String(value.incident_id), submittedByWallet: String(value.submitted_by_wallet),
+      evidenceType: String(value.evidence_type), contentUri: value.content_uri === null ? null : String(value.content_uri), contentHash: String(value.content_hash),
+      statement: String(value.statement), signature: String(value.signature), signedAt: new Date(String(value.signed_at)).toISOString(),
+      signatureValid: Boolean(value.signature_valid), contentHashMatched: value.content_hash_matched === null ? null : Boolean(value.content_hash_matched),
+      reviewStatus: String(value.review_status), reviewerNotes: value.reviewer_notes === null ? null : String(value.reviewer_notes),
+      reviewedAt: value.reviewed_at ? new Date(String(value.reviewed_at)).toISOString() : null, createdAt: new Date(String(value.created_at)).toISOString(),
+    };
+  });
+}
+
+export async function reviewEvidenceSubmission(id: string, decision: "ACCEPTED" | "REJECTED", reviewerNotes: string, reviewedAt: string) {
+  const sql = database();
+  await sql`UPDATE evidence_submissions SET review_status = ${decision}, reviewer_notes = ${reviewerNotes}, reviewed_at = ${reviewedAt} WHERE id = ${id}`;
 }
 
 export type ContinuityRecordRecord = {

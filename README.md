@@ -20,6 +20,10 @@ The API currently exposes free A2MCP-compatible endpoints through Next.js route 
 - `GET /api/v1/a2a/investigations/:id` retrieves persisted A2A investigation state.
 - `POST /api/v1/a2a/investigations/:id/quote` records a quote that cannot exceed the caller-declared budget.
 - `POST /api/v1/a2a/investigations/:id/accept` records buyer acceptance as `ACCEPTED_PENDING_PAYMENT`; it does not simulate escrow or payment.
+- `GET /api/v1/evidence-review/queue` and `POST /api/v1/evidence-submissions/:id/review` provide token-protected evidence review operations using `REVIEWER_TOKEN`.
+- `POST /api/v1/a2a/investigations/:id/payment-verified` accepts only a trusted payment-verification handoff using `A2A_EXECUTION_TOKEN`; it does not verify arbitrary caller claims.
+- `POST /api/v1/a2a/investigations/:id/execute` performs a real probe and delivers a record only after trusted payment verification and accepted signed evidence.
+- `POST /api/v1/a2a/investigations/:id/buyer-response` records a trusted buyer response; arbitration remains a separate OKX external process.
 - `/records/:recordId` renders a public Continuity Record from persisted data, including confidence, evidence counts, recommendations, and the stored SHA-256 hash.
 - `/evidence-tasks/:taskId` provides a real browser-wallet EIP-712 signing flow for text evidence on X Layer; submissions remain pending review.
 - Paid route protection is wired through the official OKX Next.js x402 adapter. It uses X Layer `eip155:196`, exact payment, and USDT0; it fails closed with `503` until all payment credentials, `PAY_TO`, and an HTTPS `PUBLIC_BASE_URL` are configured.
