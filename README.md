@@ -14,8 +14,11 @@ The API currently exposes free A2MCP-compatible endpoints through Next.js route 
 - `POST /api/v1/submit-evidence` verifies an EIP-712 evidence signature against the submitting wallet, computes SHA-256 hashes for server-supplied content, and persists the submission for review.
 - `POST /api/v1/issue-continuity-record` generates and persists a record from the incident and its persisted evidence submissions; only accepted, valid signed evidence can affect the verdict.
 - `GET /api/v1/records/:id` retrieves a persisted Continuity Record.
+- `GET /api/v1/dashboard` aggregates persisted probes, incidents, evidence tasks, and records for the operational dashboard.
 
 No records are seeded, and no payment is enabled.
+
+The dashboard at `/` is data-backed. With no `DATABASE_URL` or no persisted records, it shows a connection error or a deliberate empty state rather than demo agents or simulated history.
 
 ```bash
 npm install

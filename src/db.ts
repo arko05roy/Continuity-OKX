@@ -157,6 +157,46 @@ export async function findIncident(idOrSlug: string): Promise<IncidentRecord | n
   return rows.length === 0 ? null : mapIncident(rows[0] as Record<string, unknown>);
 }
 
+export async function listIncidents(limit = 50): Promise<IncidentRecord[]> {
+  const sql = database();
+  const rows = await sql`SELECT id, public_slug, agent_name, agent_id, endpoint_url, opened_by,
+    incident_type, severity, status, claim, requested_outcome, evidence_urls, created_at, updated_at
+    FROM incidents ORDER BY updated_at DESC LIMIT ${limit}`;
+  return rows.map((row) => mapIncident(row as Record<string, unknown>));
+}
+
+export type ReliabilityProbeRecord = {
+  id: string;
+  agentName: string;
+  endpointUrl: string;
+  probeType: string;
+  status: string;
+  startedAt: string;
+  completedAt: string;
+  summary: string;
+  statusCode: number | null;
+  latencyMs: number | null;
+  contentType: string | null;
+};
+
+export async function listReliabilityProbes(limit = 50): Promise<ReliabilityProbeRecord[]> {
+  const sql = database();
+  const rows = await sql`SELECT id, agent_name, endpoint_url, probe_type, status, started_at,
+    completed_at, summary, http_status_code, latency_ms, content_type
+    FROM reliability_probes ORDER BY completed_at DESC LIMIT ${limit}`;
+  return rows.map((row) => {
+    const value = row as Record<string, unknown>;
+    return {
+      id: String(value.id), agentName: String(value.agent_name), endpointUrl: String(value.endpoint_url),
+      probeType: String(value.probe_type), status: String(value.status), startedAt: new Date(String(value.started_at)).toISOString(),
+      completedAt: new Date(String(value.completed_at)).toISOString(), summary: String(value.summary),
+      statusCode: value.http_status_code === null ? null : Number(value.http_status_code),
+      latencyMs: value.latency_ms === null ? null : Number(value.latency_ms),
+      contentType: value.content_type === null ? null : String(value.content_type),
+    };
+  });
+}
+
 export type EvidenceTaskRecord = {
   id: string;
   incidentId: string;
@@ -198,6 +238,23 @@ export async function findEvidenceTask(id: string): Promise<EvidenceTaskRecord |
     assignmentStatus: String(row.assignment_status), createdAt: new Date(String(row.created_at)).toISOString(),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
   };
+}
+
+export async function listEvidenceTasks(limit = 50): Promise<EvidenceTaskRecord[]> {
+  const sql = database();
+  const rows = await sql`SELECT id, incident_id, task_type, instructions, reward_amount,
+    reward_token, deadline, assigned_to_wallet, assignment_status, created_at, updated_at
+    FROM human_evidence_tasks ORDER BY updated_at DESC LIMIT ${limit}`;
+  return rows.map((row) => {
+    const value = row as Record<string, unknown>;
+    return {
+      id: String(value.id), incidentId: String(value.incident_id), taskType: String(value.task_type),
+      instructions: String(value.instructions), rewardAmount: String(value.reward_amount), rewardToken: String(value.reward_token),
+      deadline: new Date(String(value.deadline)).toISOString(), assignedToWallet: value.assigned_to_wallet === null ? null : String(value.assigned_to_wallet),
+      assignmentStatus: String(value.assignment_status), createdAt: new Date(String(value.created_at)).toISOString(),
+      updatedAt: new Date(String(value.updated_at)).toISOString(),
+    };
+  });
 }
 
 export async function insertEvidenceSubmission(submission: {
@@ -303,4 +360,12 @@ export async function findContinuityRecord(id: string): Promise<ContinuityRecord
     impact_summary, evidence_summary, recommended_actions, replacement_services, record_hash,
     signature, public_url, created_at FROM continuity_records WHERE id = ${id} LIMIT 1`;
   return rows.length === 0 ? null : mapContinuityRecord(rows[0] as Record<string, unknown>);
+}
+
+export async function listContinuityRecords(limit = 50): Promise<ContinuityRecordRecord[]> {
+  const sql = database();
+  const rows = await sql`SELECT id, incident_id, agent_name, record_type, verdict, root_cause,
+    impact_summary, evidence_summary, recommended_actions, replacement_services, record_hash,
+    signature, public_url, created_at FROM continuity_records ORDER BY created_at DESC LIMIT ${limit}`;
+  return rows.map((row) => mapContinuityRecord(row as Record<string, unknown>));
 }
