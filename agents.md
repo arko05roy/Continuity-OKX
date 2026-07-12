@@ -20,6 +20,10 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Implemented endpoint: `GET /api/v1/records/:id`.
 - Implemented endpoint: `GET /api/v1/dashboard`.
 - Implemented endpoint: `GET /api/v1/agents/:id/reliability-profile`.
+- Implemented endpoint: `POST /api/v1/a2a/investigations` for real A2A investigation intake.
+- Implemented endpoint: `GET /api/v1/a2a/investigations/:id` for persisted investigation state.
+- Implemented endpoint: `POST /api/v1/a2a/investigations/:id/quote` for budget-bounded quote negotiation.
+- Implemented endpoint: `POST /api/v1/a2a/investigations/:id/accept` for buyer acceptance pending verified payment.
 - Implemented dashboard at `/` with real persisted-data views for agents, incidents, evidence tasks, and records.
 - Implemented public record page at `/records/:recordId`.
 - Implemented verifier page at `/evidence-tasks/:taskId` with real browser-wallet EIP-712 signing on X Layer.
@@ -29,8 +33,15 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Evidence submissions verify the supplied EIP-712 signature against the caller-supplied EVM wallet using the Continuity Evidence domain on X Layer chain ID 196. Invalid signatures are persisted as pending review with `signatureValid: false`, never treated as accepted evidence.
 - Continuity records include a confidence level and only accepted, valid, hash-matched evidence can affect their verdict; records without sufficient accepted evidence remain `INCONCLUSIVE`.
 - There is no seed data, fake evidence, fake uptime history, fake transaction hash, or simulated payment.
-- Payment is not enabled yet. Until OKX credentials and a public HTTPS deployment exist, the endpoint is a free A2MCP-compatible service, not a paid x402 service.
-- The official OKX Next.js x402 adapter is installed and paid protection is wired for status checks, incident opening, evidence-task requests, and record issuance. It remains fail-closed until `PAY_TO` and HTTPS `PUBLIC_BASE_URL` are configured alongside the OKX credentials.
+- The official OKX Next.js x402 adapter is installed and paid protection is wired for status checks, incident opening, evidence-task requests, and record issuance. The deployed service returns genuine `402 Payment Required` challenges on X Layer; paid replay and settlement have not yet been verified with a real buyer wallet.
+- A2A intake/quote/acceptance state is persisted, but acceptance remains `ACCEPTED_PENDING_PAYMENT`; no escrow, payment, delivery, or arbitration is simulated.
+
+## External status that must remain explicit
+
+- A2MCP paid replay/settlement: `UNVERIFIED` until a real buyer wallet pays and the endpoint returns the replayed result.
+- A2MCP marketplace listing: `NOT SUBMITTED`; no OKX.AI approval or listing is claimed.
+- A2A marketplace listing: `NOT SUBMITTED`; the negotiation/execution agent workflow is not yet ready to claim as live.
+- Evidence review: `PENDING_REVIEW` submissions require a reviewer workflow before they can affect a Continuity Record verdict.
 
 ## Source-backed constraints
 
@@ -41,10 +52,11 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 
 ## Next safe slices
 
-1. Configure a real Neon database and public HTTPS deployment.
-2. Add OKX x402 middleware only after credentials, seller wallet, and public HTTPS deployment are available.
-3. Prepare and submit truthful A2MCP/A2A listing metadata through Onchain OS after the public service is live.
-4. Record the demo and submit the hackathon materials using real endpoint activity and real signed evidence.
+1. Verify one real paid A2MCP replay/settlement with a buyer wallet.
+2. Add evidence review and trusted A2A payment-verification integration.
+3. Build A2A execution and delivery from real probes/evidence into a record.
+4. Submit truthful A2MCP listing metadata through Onchain OS; register A2A only after its agent workflow can negotiate and deliver.
+5. Record the demo and submit the hackathon materials using real endpoint activity and real signed evidence.
 
 ## Verification
 

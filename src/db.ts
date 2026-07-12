@@ -78,6 +78,35 @@ export async function ensureSchema() {
     created_at TIMESTAMPTZ NOT NULL
   )`;
   await sql`ALTER TABLE continuity_records ADD COLUMN IF NOT EXISTS confidence TEXT NOT NULL DEFAULT 'LOW'`;
+  await sql`CREATE TABLE IF NOT EXISTS a2a_investigations (
+    id UUID PRIMARY KEY,
+    public_slug TEXT NOT NULL UNIQUE,
+    incident_id UUID NOT NULL REFERENCES incidents(id),
+    agent_name TEXT NOT NULL,
+    agent_id TEXT,
+    endpoint_url TEXT,
+    opened_by TEXT NOT NULL,
+    claim TEXT NOT NULL,
+    requested_outcome TEXT NOT NULL,
+    budget_amount NUMERIC(30, 18) NOT NULL,
+    budget_token TEXT NOT NULL,
+    deadline TIMESTAMPTZ NOT NULL,
+    delivery_instructions TEXT NOT NULL,
+    status TEXT NOT NULL,
+    quoted_amount NUMERIC(30, 18),
+    quoted_token TEXT,
+    quoted_scope TEXT,
+    quote_expires_at TIMESTAMPTZ,
+    payment_status TEXT NOT NULL,
+    payment_reference TEXT,
+    payment_network TEXT,
+    record_id UUID REFERENCES continuity_records(id),
+    delivery_url TEXT,
+    buyer_decision TEXT,
+    buyer_note TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+  )`;
 }
 
 export async function insertReliabilityProbe(probe: {
@@ -371,4 +400,91 @@ export async function listContinuityRecords(limit = 50): Promise<ContinuityRecor
     impact_summary, evidence_summary, recommended_actions, replacement_services, record_hash,
     signature, public_url, created_at FROM continuity_records ORDER BY created_at DESC LIMIT ${limit}`;
   return rows.map((row) => mapContinuityRecord(row as Record<string, unknown>));
+}
+
+export type A2AInvestigationRecord = {
+  id: string;
+  publicSlug: string;
+  incidentId: string;
+  agentName: string;
+  agentId: string | null;
+  endpointUrl: string | null;
+  openedBy: string;
+  claim: string;
+  requestedOutcome: string;
+  budgetAmount: string;
+  budgetToken: string;
+  deadline: string;
+  deliveryInstructions: string;
+  status: string;
+  quotedAmount: string | null;
+  quotedToken: string | null;
+  quotedScope: string | null;
+  quoteExpiresAt: string | null;
+  paymentStatus: string;
+  paymentReference: string | null;
+  paymentNetwork: string | null;
+  recordId: string | null;
+  deliveryUrl: string | null;
+  buyerDecision: string | null;
+  buyerNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function nullableString(value: unknown): string | null {
+  return value === null || value === undefined ? null : String(value);
+}
+
+function mapA2AInvestigation(row: Record<string, unknown>): A2AInvestigationRecord {
+  return {
+    id: String(row.id), publicSlug: String(row.public_slug), incidentId: String(row.incident_id),
+    agentName: String(row.agent_name), agentId: nullableString(row.agent_id), endpointUrl: nullableString(row.endpoint_url),
+    openedBy: String(row.opened_by), claim: String(row.claim), requestedOutcome: String(row.requested_outcome),
+    budgetAmount: String(row.budget_amount), budgetToken: String(row.budget_token), deadline: new Date(String(row.deadline)).toISOString(),
+    deliveryInstructions: String(row.delivery_instructions), status: String(row.status), quotedAmount: nullableString(row.quoted_amount),
+    quotedToken: nullableString(row.quoted_token), quotedScope: nullableString(row.quoted_scope), quoteExpiresAt: row.quote_expires_at ? new Date(String(row.quote_expires_at)).toISOString() : null,
+    paymentStatus: String(row.payment_status), paymentReference: nullableString(row.payment_reference), paymentNetwork: nullableString(row.payment_network),
+    recordId: nullableString(row.record_id), deliveryUrl: nullableString(row.delivery_url), buyerDecision: nullableString(row.buyer_decision),
+    buyerNote: nullableString(row.buyer_note), createdAt: new Date(String(row.created_at)).toISOString(), updatedAt: new Date(String(row.updated_at)).toISOString(),
+  };
+}
+
+export async function insertA2AInvestigation(investigation: A2AInvestigationRecord) {
+  const sql = database();
+  await sql`INSERT INTO a2a_investigations (
+    id, public_slug, incident_id, agent_name, agent_id, endpoint_url, opened_by, claim,
+    requested_outcome, budget_amount, budget_token, deadline, delivery_instructions,
+    status, quoted_amount, quoted_token, quoted_scope, quote_expires_at, payment_status,
+    payment_reference, payment_network, record_id, delivery_url, buyer_decision, buyer_note,
+    created_at, updated_at
+  ) VALUES (
+    ${investigation.id}, ${investigation.publicSlug}, ${investigation.incidentId}, ${investigation.agentName},
+    ${investigation.agentId}, ${investigation.endpointUrl}, ${investigation.openedBy}, ${investigation.claim},
+    ${investigation.requestedOutcome}, ${investigation.budgetAmount}, ${investigation.budgetToken}, ${investigation.deadline},
+    ${investigation.deliveryInstructions}, ${investigation.status}, ${investigation.quotedAmount}, ${investigation.quotedToken},
+    ${investigation.quotedScope}, ${investigation.quoteExpiresAt}, ${investigation.paymentStatus}, ${investigation.paymentReference},
+    ${investigation.paymentNetwork}, ${investigation.recordId}, ${investigation.deliveryUrl}, ${investigation.buyerDecision},
+    ${investigation.buyerNote}, ${investigation.createdAt}, ${investigation.updatedAt}
+  )`;
+}
+
+export async function findA2AInvestigation(idOrSlug: string): Promise<A2AInvestigationRecord | null> {
+  const sql = database();
+  const rows = await sql`SELECT id, public_slug, incident_id, agent_name, agent_id, endpoint_url, opened_by, claim,
+    requested_outcome, budget_amount, budget_token, deadline, delivery_instructions, status,
+    quoted_amount, quoted_token, quoted_scope, quote_expires_at, payment_status, payment_reference,
+    payment_network, record_id, delivery_url, buyer_decision, buyer_note, created_at, updated_at
+    FROM a2a_investigations WHERE id::text = ${idOrSlug} OR public_slug = ${idOrSlug} LIMIT 1`;
+  return rows.length === 0 ? null : mapA2AInvestigation(rows[0] as Record<string, unknown>);
+}
+
+export async function updateA2AInvestigation(investigation: A2AInvestigationRecord) {
+  const sql = database();
+  await sql`UPDATE a2a_investigations SET
+    status = ${investigation.status}, quoted_amount = ${investigation.quotedAmount}, quoted_token = ${investigation.quotedToken},
+    quoted_scope = ${investigation.quotedScope}, quote_expires_at = ${investigation.quoteExpiresAt}, payment_status = ${investigation.paymentStatus},
+    payment_reference = ${investigation.paymentReference}, payment_network = ${investigation.paymentNetwork}, record_id = ${investigation.recordId},
+    delivery_url = ${investigation.deliveryUrl}, buyer_decision = ${investigation.buyerDecision}, buyer_note = ${investigation.buyerNote},
+    updated_at = ${investigation.updatedAt} WHERE id = ${investigation.id}`;
 }

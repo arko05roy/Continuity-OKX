@@ -16,6 +16,10 @@ The API currently exposes free A2MCP-compatible endpoints through Next.js route 
 - `GET /api/v1/records/:id` retrieves a persisted Continuity Record.
 - `GET /api/v1/dashboard` aggregates persisted probes, incidents, evidence tasks, and records for the operational dashboard.
 - `GET /api/v1/agents/:id/reliability-profile` returns a profile derived from persisted records; it reports `INCONCLUSIVE` with a null score when the available evidence is insufficient.
+- `POST /api/v1/a2a/investigations` opens a real investigation request and incident for A2A negotiation.
+- `GET /api/v1/a2a/investigations/:id` retrieves persisted A2A investigation state.
+- `POST /api/v1/a2a/investigations/:id/quote` records a quote that cannot exceed the caller-declared budget.
+- `POST /api/v1/a2a/investigations/:id/accept` records buyer acceptance as `ACCEPTED_PENDING_PAYMENT`; it does not simulate escrow or payment.
 - `/records/:recordId` renders a public Continuity Record from persisted data, including confidence, evidence counts, recommendations, and the stored SHA-256 hash.
 - `/evidence-tasks/:taskId` provides a real browser-wallet EIP-712 signing flow for text evidence on X Layer; submissions remain pending review.
 - Paid route protection is wired through the official OKX Next.js x402 adapter. It uses X Layer `eip155:196`, exact payment, and USDT0; it fails closed with `503` until all payment credentials, `PAY_TO`, and an HTTPS `PUBLIC_BASE_URL` are configured.

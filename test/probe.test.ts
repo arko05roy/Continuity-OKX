@@ -4,6 +4,7 @@ import { assertSafeEndpoint, sha256Text } from "../src/probe";
 import { openIncidentRequest, requestEvidenceTask, submitEvidenceRequest } from "../src/incidents";
 import { generateContinuityRecord, hashRecord } from "../src/records";
 import { buildReliabilityProfile } from "../src/reliability";
+import { a2aInvestigationRequest, quoteFitsBudget, transitionA2A } from "../src/a2a";
 
 test("rejects non-HTTPS endpoints", async () => {
   await assert.rejects(() => assertSafeEndpoint("http://example.com"), /HTTPS/);
@@ -85,4 +86,21 @@ test("reliability profile stays inconclusive when records are insufficient", () 
   assert.equal(profile.continuityScore, null);
   assert.equal(profile.signals.uptime, "PASS");
   assert.equal(profile.signals.validatedRecords, 0);
+});
+
+test("A2A investigation requires a real budget and delivery instructions", () => {
+  const result = a2aInvestigationRequest.safeParse({
+    agentName: "Research agent", openedBy: "buyer-wallet", incidentType: "FAILED_DELIVERY", severity: "HIGH",
+    claim: "The requested report was not delivered.", requestedOutcome: "REDELIVERY", budgetAmount: "1.00",
+    budgetToken: "USDT0", deadlineMinutes: 120, deliveryInstructions: "Return a Continuity Record URL.",
+  });
+  assert.equal(result.success, true);
+});
+
+test("A2A quote and acceptance do not imply payment", () => {
+  assert.equal(quoteFitsBudget("0.50", "1.00"), true);
+  assert.equal(quoteFitsBudget("1.01", "1.00"), false);
+  assert.equal(transitionA2A("REQUESTED", "QUOTE"), "QUOTED");
+  assert.equal(transitionA2A("QUOTED", "ACCEPT"), "ACCEPTED_PENDING_PAYMENT");
+  assert.equal(transitionA2A("ACCEPTED_PENDING_PAYMENT", "PAYMENT_VERIFIED"), "PAYMENT_VERIFIED");
 });
