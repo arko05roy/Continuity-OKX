@@ -1,0 +1,43 @@
+# Continuity project context
+
+## Product
+
+Continuity provides reliability, evidence, and recovery infrastructure for OKX.AI agents. Product language is institutional: incident, recovery, evidence, reliability, verifier, root cause, record, and restored.
+
+## Current implementation
+
+- This repository is being built in small, verifiable vertical slices.
+- Slice 1 is a Next.js App Router application with TypeScript, route handlers, and Neon Postgres persistence.
+- Implemented endpoint: `GET /api/health`.
+- Implemented endpoint: `POST /api/v1/check-agent-status`.
+- The status endpoint performs a real HTTPS probe and persists a real `ReliabilityProbe` record.
+- Implemented endpoint: `POST /api/v1/open-incident`.
+- Implemented endpoint: `GET /api/v1/incidents/:id`.
+- Implemented endpoint: `POST /api/v1/request-human-evidence`.
+- Implemented endpoint: `GET /api/v1/evidence-tasks/:id`.
+- Implemented endpoint: `POST /api/v1/submit-evidence`.
+- Incident intake validates caller-supplied fields with Zod, requires HTTPS evidence URLs, applies SSRF-safe validation to optional agent endpoints, and persists a real `Incident` record in Neon Postgres.
+- Incident retrieval works by persisted incident UUID or generated public slug.
+- Evidence tasks and submissions persist against real incidents in Neon Postgres. Text/content supplied in a submission is hashed server-side with SHA-256; externally hosted content requires a caller-supplied SHA-256 digest and remains pending review because the service does not pretend to have fetched or verified it.
+- Evidence submissions verify the supplied EIP-712 signature against the caller-supplied EVM wallet using the Continuity Evidence domain on X Layer chain ID 196. Invalid signatures are persisted as pending review with `signatureValid: false`, never treated as accepted evidence.
+- There is no seed data, fake evidence, fake uptime history, fake transaction hash, or simulated payment.
+- Payment is not enabled yet. Until OKX credentials and a public HTTPS deployment exist, the endpoint is a free A2MCP-compatible service, not a paid x402 service.
+
+## Source-backed constraints
+
+- A2MCP can be free or pay-per-call; paid routes must return a genuine x402 `402 Payment Required` challenge and replay after payment.
+- OKX seller payment configuration is X Layer `eip155:196`, with USDT0 `0x779ded0c9e1022225f8e0630b35a9b54be713736` as the documented default token.
+- Never commit or log `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE`, or wallet secrets.
+- Re-open the URLs in `plan.md` before implementing payment, listing, A2A, signing, or anchoring work.
+
+## Next safe slices
+
+1. Add continuity record generation from persisted incident/evidence data.
+2. Add the dashboard against these API records.
+3. Add OKX x402 middleware only after credentials, seller wallet, and public HTTPS deployment are available.
+
+## Verification
+
+- `npm run build`
+- `npm test`
+- Run locally with `npm run dev`; set `DATABASE_URL` to a real Neon database and use a real HTTPS endpoint as the probe target.
