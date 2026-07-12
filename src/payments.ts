@@ -47,7 +47,7 @@ export function paidRoute(handler: PaidHandler, route: PaidRoute): PaidHandler {
 export function paidRouteConfig(path: string, price: string, description: string): PaidRoute {
   return {
     accepts: { scheme: "exact", price, network: OKX_NETWORK, payTo: process.env.PAY_TO!, maxTimeoutSeconds: 300 },
-    resource: `${process.env.PUBLIC_BASE_URL}${path}`,
+    resource: `${process.env.PUBLIC_BASE_URL!.replace(/\/$/, "")}${path}`,
     description,
     mimeType: "application/json",
   } as PaidRoute;
