@@ -6,6 +6,7 @@ export type RecordType = (typeof recordTypes)[number];
 
 export type GeneratedContinuityRecord = {
   verdict: "DELIVERY_NOT_VERIFIED" | "DELIVERY_VERIFIED" | "INCONCLUSIVE" | "UNAVAILABLE" | "COMPROMISED" | "RESTORED";
+  confidence: "LOW" | "MEDIUM" | "HIGH";
   rootCause: string;
   impactSummary: string;
   evidenceSummary: Record<string, unknown>;
@@ -25,6 +26,7 @@ export function generateContinuityRecord(incident: IncidentRecord, submissions: 
   const isUnavailable = incident.incidentType === "UNAVAILABLE";
   const isSecurityRisk = incident.incidentType === "SECURITY_RISK";
   const isRestored = incident.status === "RESTORED";
+  const confidence = accepted.length >= 2 ? "HIGH" : accepted.length === 1 ? "MEDIUM" : "LOW";
   const verdict = isSecurityRisk ? "COMPROMISED" : isRestored ? "RESTORED" : isUnavailable ? "UNAVAILABLE" :
     hasAcceptedEvidence ? (incident.incidentType === "DISPUTED_DELIVERY" || incident.incidentType === "FAILED_DELIVERY" ? "DELIVERY_NOT_VERIFIED" : "INCONCLUSIVE") : "INCONCLUSIVE";
 
@@ -38,6 +40,7 @@ export function generateContinuityRecord(incident: IncidentRecord, submissions: 
 
   return {
     verdict,
+    confidence,
     rootCause: hasAcceptedEvidence
       ? `Incident claim supported by ${accepted.length} accepted signed evidence submission${accepted.length === 1 ? "" : "s"}.`
       : "No accepted signed evidence is available for this incident; the reported cause remains unverified.",

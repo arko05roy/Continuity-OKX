@@ -66,6 +66,7 @@ export async function ensureSchema() {
     agent_name TEXT NOT NULL,
     record_type TEXT NOT NULL,
     verdict TEXT NOT NULL,
+    confidence TEXT NOT NULL DEFAULT 'LOW',
     root_cause TEXT NOT NULL,
     impact_summary TEXT NOT NULL,
     evidence_summary JSONB NOT NULL,
@@ -76,6 +77,7 @@ export async function ensureSchema() {
     public_url TEXT,
     created_at TIMESTAMPTZ NOT NULL
   )`;
+  await sql`ALTER TABLE continuity_records ADD COLUMN IF NOT EXISTS confidence TEXT NOT NULL DEFAULT 'LOW'`;
 }
 
 export async function insertReliabilityProbe(probe: {
@@ -317,6 +319,7 @@ export type ContinuityRecordRecord = {
   agentName: string;
   recordType: string;
   verdict: string;
+  confidence: string;
   rootCause: string;
   impactSummary: string;
   evidenceSummary: Record<string, unknown>;
@@ -331,7 +334,7 @@ export type ContinuityRecordRecord = {
 function mapContinuityRecord(row: Record<string, unknown>): ContinuityRecordRecord {
   return {
     id: String(row.id), incidentId: String(row.incident_id), agentName: String(row.agent_name),
-    recordType: String(row.record_type), verdict: String(row.verdict), rootCause: String(row.root_cause),
+    recordType: String(row.record_type), verdict: String(row.verdict), confidence: String(row.confidence ?? "LOW"), rootCause: String(row.root_cause),
     impactSummary: String(row.impact_summary), evidenceSummary: (row.evidence_summary ?? {}) as Record<string, unknown>,
     recommendedActions: Array.isArray(row.recommended_actions) ? row.recommended_actions.map(String) : [],
     replacementServices: Array.isArray(row.replacement_services) ? row.replacement_services.map(String) : [],
@@ -343,11 +346,11 @@ function mapContinuityRecord(row: Record<string, unknown>): ContinuityRecordReco
 export async function insertContinuityRecord(record: ContinuityRecordRecord) {
   const sql = database();
   await sql`INSERT INTO continuity_records (
-    id, incident_id, agent_name, record_type, verdict, root_cause, impact_summary,
+    id, incident_id, agent_name, record_type, verdict, confidence, root_cause, impact_summary,
     evidence_summary, recommended_actions, replacement_services, record_hash,
     signature, public_url, created_at
   ) VALUES (
-    ${record.id}, ${record.incidentId}, ${record.agentName}, ${record.recordType}, ${record.verdict},
+    ${record.id}, ${record.incidentId}, ${record.agentName}, ${record.recordType}, ${record.verdict}, ${record.confidence},
     ${record.rootCause}, ${record.impactSummary}, ${JSON.stringify(record.evidenceSummary)}::jsonb,
     ${JSON.stringify(record.recommendedActions)}::jsonb, ${JSON.stringify(record.replacementServices)}::jsonb,
     ${record.recordHash}, ${record.signature}, ${record.publicUrl}, ${record.createdAt}
@@ -356,7 +359,7 @@ export async function insertContinuityRecord(record: ContinuityRecordRecord) {
 
 export async function findContinuityRecord(id: string): Promise<ContinuityRecordRecord | null> {
   const sql = database();
-  const rows = await sql`SELECT id, incident_id, agent_name, record_type, verdict, root_cause,
+  const rows = await sql`SELECT id, incident_id, agent_name, record_type, verdict, confidence, root_cause,
     impact_summary, evidence_summary, recommended_actions, replacement_services, record_hash,
     signature, public_url, created_at FROM continuity_records WHERE id = ${id} LIMIT 1`;
   return rows.length === 0 ? null : mapContinuityRecord(rows[0] as Record<string, unknown>);
@@ -364,7 +367,7 @@ export async function findContinuityRecord(id: string): Promise<ContinuityRecord
 
 export async function listContinuityRecords(limit = 50): Promise<ContinuityRecordRecord[]> {
   const sql = database();
-  const rows = await sql`SELECT id, incident_id, agent_name, record_type, verdict, root_cause,
+  const rows = await sql`SELECT id, incident_id, agent_name, record_type, verdict, confidence, root_cause,
     impact_summary, evidence_summary, recommended_actions, replacement_services, record_hash,
     signature, public_url, created_at FROM continuity_records ORDER BY created_at DESC LIMIT ${limit}`;
   return rows.map((row) => mapContinuityRecord(row as Record<string, unknown>));

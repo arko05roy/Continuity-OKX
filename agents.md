@@ -16,10 +16,18 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 - Implemented endpoint: `POST /api/v1/request-human-evidence`.
 - Implemented endpoint: `GET /api/v1/evidence-tasks/:id`.
 - Implemented endpoint: `POST /api/v1/submit-evidence`.
+- Implemented endpoint: `POST /api/v1/issue-continuity-record`.
+- Implemented endpoint: `GET /api/v1/records/:id`.
+- Implemented endpoint: `GET /api/v1/dashboard`.
+- Implemented endpoint: `GET /api/v1/agents/:id/reliability-profile`.
+- Implemented dashboard at `/` with real persisted-data views for agents, incidents, evidence tasks, and records.
+- Implemented public record page at `/records/:recordId`.
+- Implemented verifier page at `/evidence-tasks/:taskId` with real browser-wallet EIP-712 signing on X Layer.
 - Incident intake validates caller-supplied fields with Zod, requires HTTPS evidence URLs, applies SSRF-safe validation to optional agent endpoints, and persists a real `Incident` record in Neon Postgres.
 - Incident retrieval works by persisted incident UUID or generated public slug.
 - Evidence tasks and submissions persist against real incidents in Neon Postgres. Text/content supplied in a submission is hashed server-side with SHA-256; externally hosted content requires a caller-supplied SHA-256 digest and remains pending review because the service does not pretend to have fetched or verified it.
 - Evidence submissions verify the supplied EIP-712 signature against the caller-supplied EVM wallet using the Continuity Evidence domain on X Layer chain ID 196. Invalid signatures are persisted as pending review with `signatureValid: false`, never treated as accepted evidence.
+- Continuity records include a confidence level and only accepted, valid, hash-matched evidence can affect their verdict; records without sufficient accepted evidence remain `INCONCLUSIVE`.
 - There is no seed data, fake evidence, fake uptime history, fake transaction hash, or simulated payment.
 - Payment is not enabled yet. Until OKX credentials and a public HTTPS deployment exist, the endpoint is a free A2MCP-compatible service, not a paid x402 service.
 
@@ -32,9 +40,10 @@ Continuity provides reliability, evidence, and recovery infrastructure for OKX.A
 
 ## Next safe slices
 
-1. Add continuity record generation from persisted incident/evidence data.
-2. Add the dashboard against these API records.
-3. Add OKX x402 middleware only after credentials, seller wallet, and public HTTPS deployment are available.
+1. Configure a real Neon database and public HTTPS deployment.
+2. Add OKX x402 middleware only after credentials, seller wallet, and public HTTPS deployment are available.
+3. Prepare and submit truthful A2MCP/A2A listing metadata through Onchain OS after the public service is live.
+4. Record the demo and submit the hackathon materials using real endpoint activity and real signed evidence.
 
 ## Verification
 

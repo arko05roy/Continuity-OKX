@@ -16,6 +16,8 @@ The API currently exposes free A2MCP-compatible endpoints through Next.js route 
 - `GET /api/v1/records/:id` retrieves a persisted Continuity Record.
 - `GET /api/v1/dashboard` aggregates persisted probes, incidents, evidence tasks, and records for the operational dashboard.
 - `GET /api/v1/agents/:id/reliability-profile` returns a profile derived from persisted records; it reports `INCONCLUSIVE` with a null score when the available evidence is insufficient.
+- `/records/:recordId` renders a public Continuity Record from persisted data, including confidence, evidence counts, recommendations, and the stored SHA-256 hash.
+- `/evidence-tasks/:taskId` provides a real browser-wallet EIP-712 signing flow for text evidence on X Layer; submissions remain pending review.
 
 No records are seeded, and no payment is enabled.
 

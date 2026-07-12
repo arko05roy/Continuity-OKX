@@ -6,7 +6,7 @@ type DashboardData = {
   agents: { agentName: string; endpointUrl: string; latestStatus: string; lastCheckedAt: string }[];
   incidents: { id: string; publicSlug: string; agentName: string; incidentType: string; severity: string; status: string; claim: string; updatedAt: string }[];
   evidenceTasks: { id: string; incidentId: string; taskType: string; assignmentStatus: string; deadline: string }[];
-  records: { id: string; agentName: string; recordType: string; verdict: string; recordHash: string; createdAt: string }[];
+  records: { id: string; agentName: string; recordType: string; verdict: string; confidence: string; recordHash: string; createdAt: string }[];
   counts: { agents: number; openIncidents: number; evidenceTasks: number; records: number };
 };
 
@@ -74,7 +74,7 @@ export default function Home() {
           <section className="panel" id="evidence"><div className="panel-heading"><div><p className="eyebrow">Verification</p><h2>Evidence queue</h2></div><span className="count-badge">{data?.counts.evidenceTasks ?? 0}</span></div>{data?.evidenceTasks.length ? <div className="task-list">{data.evidenceTasks.map((task) => <div className="task-row" key={task.id}><div><strong>{task.taskType.replaceAll("_", " ")}</strong><small>{task.id}</small></div><span className="task-status">{task.assignmentStatus}</span><time>{formatDate(task.deadline)}</time></div>)}</div> : <EmptyState title="Evidence queue is clear" detail="No human verification tasks have been created." />}</section>
         </div>
 
-        <section className="panel records-panel" id="records"><div className="panel-heading"><div><p className="eyebrow">Public output</p><h2>Continuity records</h2></div><span className="section-note">Hashes are verifiable</span></div>{data?.records.length ? <div className="record-list">{data.records.map((record) => <a className="record-row" href={`/api/v1/records/${record.id}`} key={record.id}><div className="record-id"><span className="record-icon">▧</span><div><strong>{record.agentName}</strong><small>{record.recordType} · {record.recordHash.slice(0, 16)}…</small></div></div><span className={`verdict verdict-${record.verdict.toLowerCase()}`}>{record.verdict.replaceAll("_", " ")}</span><time>{formatDate(record.createdAt)}</time><span className="arrow">↗</span></a>)}</div> : <EmptyState title="No records issued" detail="Issue a Continuity Record after an incident has real persisted evidence." />}</section>
+        <section className="panel records-panel" id="records"><div className="panel-heading"><div><p className="eyebrow">Public output</p><h2>Continuity records</h2></div><span className="section-note">Hashes are verifiable</span></div>{data?.records.length ? <div className="record-list">{data.records.map((record) => <a className="record-row" href={`/records/${record.id}`} key={record.id}><div className="record-id"><span className="record-icon">▧</span><div><strong>{record.agentName}</strong><small>{record.recordType} · {record.recordHash.slice(0, 16)}…</small></div></div><span className={`verdict verdict-${record.verdict.toLowerCase()}`}>{record.verdict.replaceAll("_", " ")}</span><span className={`confidence confidence-${record.confidence.toLowerCase()}`}>{record.confidence}</span><time>{formatDate(record.createdAt)}</time><span className="arrow">↗</span></a>)}</div> : <EmptyState title="No records issued" detail="Issue a Continuity Record after an incident has real persisted evidence." />}</section>
       </div>
     </section>
   </main>;
