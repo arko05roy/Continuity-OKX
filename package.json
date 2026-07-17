@@ -2,19 +2,25 @@
   "name": "continuity",
   "version": "0.1.0",
   "private": true,
+  "bin": { "continuity": "./bin/continuity.mjs" },
   "description": "Reliability, evidence, and recovery infrastructure for OKX.AI agents.",
   "scripts": {
     "build": "next build",
     "typecheck": "tsc -p tsconfig.json",
     "start": "next start",
     "dev": "next dev",
-    "test": "tsx --test test/**/*.test.ts"
+    "test": "tsx --test test/**/*.test.ts",
+    "agent:healthy": "node --env-file-if-exists=.env.local scripts/control-agent.mjs HEALTHY",
+    "agent:fail": "node --env-file-if-exists=.env.local scripts/control-agent.mjs FAILED",
+    "agent:recovering": "node --env-file-if-exists=.env.local scripts/control-agent.mjs RECOVERING",
+    "cli": "node --env-file-if-exists=.env.local bin/continuity.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@okxweb3/x402-core": "^0.1.0",
     "@okxweb3/x402-evm": "^0.2.1",
     "@okxweb3/x402-next": "^0.1.1",
+    "@phosphor-icons/react": "^2.1.10",
     "next": "^16.0.10",
     "viem": "^2.55.0",
     "zod": "4.4.3"

@@ -58,9 +58,10 @@ export function paidRoute(handler: PaidHandler, route: PaidRoute): PaidHandler {
 }
 
 export function paidRouteConfig(path: string, price: string, description: string): PaidRoute {
+  const publicBaseUrl = (process.env.PUBLIC_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
   return {
     accepts: { scheme: "exact", price, network: OKX_NETWORK, payTo: process.env.PAY_TO!, maxTimeoutSeconds: 300 },
-    resource: `${process.env.PUBLIC_BASE_URL!.replace(/\/+$/, "")}${path}`,
+    resource: `${publicBaseUrl}${path}`,
     description,
     mimeType: "application/json",
   } as PaidRoute;

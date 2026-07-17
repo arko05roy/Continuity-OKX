@@ -82,6 +82,46 @@ export async function ensureSchema() {
     created_at TIMESTAMPTZ NOT NULL
   )`;
   await sql`ALTER TABLE continuity_records ADD COLUMN IF NOT EXISTS confidence TEXT NOT NULL DEFAULT 'LOW'`;
+  await sql`CREATE TABLE IF NOT EXISTS controlled_agent_runtime (
+    id TEXT PRIMARY KEY,
+    state TEXT NOT NULL,
+    failure_mode TEXT,
+    updated_at TIMESTAMPTZ NOT NULL
+  )`;
+  await sql`INSERT INTO controlled_agent_runtime (id, state, failure_mode, updated_at)
+    VALUES ('research-coordinator', 'HEALTHY', NULL, NOW())
+    ON CONFLICT (id) DO NOTHING`;
+  await sql`CREATE TABLE IF NOT EXISTS monitored_agents (
+    id UUID PRIMARY KEY,
+    agent_name TEXT NOT NULL,
+    endpoint_url TEXT NOT NULL UNIQUE,
+    expected_status INTEGER NOT NULL DEFAULT 200,
+    expected_content_type TEXT NOT NULL DEFAULT 'application/json',
+    interval_seconds INTEGER NOT NULL DEFAULT 60,
+    recovery_policy TEXT NOT NULL DEFAULT 'RETRY_AND_ESCALATE',
+    adapter_key TEXT,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    latest_status TEXT NOT NULL DEFAULT 'PENDING',
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    last_checked_at TIMESTAMPTZ,
+    next_check_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS recovery_actions (
+    id UUID PRIMARY KEY,
+    incident_id UUID NOT NULL REFERENCES incidents(id),
+    action_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    started_at TIMESTAMPTZ NOT NULL,
+    completed_at TIMESTAMPTZ
+  )`;
+  await sql`ALTER TABLE monitored_agents ADD COLUMN IF NOT EXISTS recovery_policy TEXT NOT NULL DEFAULT 'RETRY_AND_ESCALATE'`;
+  await sql`ALTER TABLE monitored_agents ADD COLUMN IF NOT EXISTS adapter_key TEXT`;
+  await sql`ALTER TABLE monitored_agents ADD COLUMN IF NOT EXISTS latest_status TEXT NOT NULL DEFAULT 'PENDING'`;
+  await sql`ALTER TABLE monitored_agents ADD COLUMN IF NOT EXISTS consecutive_failures INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE monitored_agents ADD COLUMN IF NOT EXISTS last_checked_at TIMESTAMPTZ`;
   await sql`CREATE TABLE IF NOT EXISTS a2a_investigations (
     id UUID PRIMARY KEY,
     public_slug TEXT NOT NULL UNIQUE,
@@ -112,6 +152,53 @@ export async function ensureSchema() {
     updated_at TIMESTAMPTZ NOT NULL
   )`;
 }
+
+export type ControlledAgentState = { state: "HEALTHY" | "FAILED" | "RECOVERING"; failureMode: string | null; updatedAt: string };
+
+export async function getControlledAgentState(): Promise<ControlledAgentState> {
+  const sql = database();
+  const rows = await sql`SELECT state, failure_mode, updated_at FROM controlled_agent_runtime WHERE id = 'research-coordinator' LIMIT 1`;
+  if (!rows.length) return { state: "HEALTHY", failureMode: null, updatedAt: new Date().toISOString() };
+  const row = rows[0] as Record<string, unknown>;
+  return { state: String(row.state) as ControlledAgentState["state"], failureMode: row.failure_mode === null ? null : String(row.failure_mode), updatedAt: new Date(String(row.updated_at)).toISOString() };
+}
+
+export async function setControlledAgentState(state: ControlledAgentState["state"], failureMode: string | null): Promise<ControlledAgentState> {
+  const sql = database(); const updatedAt = new Date().toISOString();
+  await sql`INSERT INTO controlled_agent_runtime (id, state, failure_mode, updated_at)
+    VALUES ('research-coordinator', ${state}, ${failureMode}, ${updatedAt})
+    ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, failure_mode = EXCLUDED.failure_mode, updated_at = EXCLUDED.updated_at`;
+  return { state, failureMode, updatedAt };
+}
+
+export type MonitoredAgentRecord = { id: string; agentName: string; endpointUrl: string; expectedStatus: number; expectedContentType: string; intervalSeconds: number; recoveryPolicy: string; adapterKey: string | null; enabled: boolean; latestStatus: string; consecutiveFailures: number; lastCheckedAt: string | null; nextCheckAt: string; createdAt: string; updatedAt: string };
+
+function mapMonitoredAgent(row: Record<string, unknown>): MonitoredAgentRecord { return { id:String(row.id), agentName:String(row.agent_name), endpointUrl:String(row.endpoint_url), expectedStatus:Number(row.expected_status), expectedContentType:String(row.expected_content_type), intervalSeconds:Number(row.interval_seconds), recoveryPolicy:String(row.recovery_policy), adapterKey:row.adapter_key === null ? null : String(row.adapter_key), enabled:Boolean(row.enabled), latestStatus:String(row.latest_status), consecutiveFailures:Number(row.consecutive_failures), lastCheckedAt:row.last_checked_at ? new Date(String(row.last_checked_at)).toISOString() : null, nextCheckAt:new Date(String(row.next_check_at)).toISOString(), createdAt:new Date(String(row.created_at)).toISOString(), updatedAt:new Date(String(row.updated_at)).toISOString() }; }
+
+export async function upsertMonitoredAgent(agent: { id: string; agentName: string; endpointUrl: string; expectedStatus: number; expectedContentType: string; intervalSeconds: number; recoveryPolicy: string; adapterKey: string | null }): Promise<MonitoredAgentRecord> {
+  const sql = database(); const now = new Date().toISOString();
+  const rows = await sql`INSERT INTO monitored_agents (id, agent_name, endpoint_url, expected_status, expected_content_type, interval_seconds, recovery_policy, adapter_key, enabled, latest_status, consecutive_failures, next_check_at, created_at, updated_at)
+    VALUES (${agent.id}, ${agent.agentName}, ${agent.endpointUrl}, ${agent.expectedStatus}, ${agent.expectedContentType}, ${agent.intervalSeconds}, ${agent.recoveryPolicy}, ${agent.adapterKey}, TRUE, 'PENDING', 0, ${now}, ${now}, ${now})
+    ON CONFLICT (endpoint_url) DO UPDATE SET agent_name=EXCLUDED.agent_name, expected_status=EXCLUDED.expected_status, expected_content_type=EXCLUDED.expected_content_type, interval_seconds=EXCLUDED.interval_seconds, recovery_policy=EXCLUDED.recovery_policy, adapter_key=COALESCE(monitored_agents.adapter_key, EXCLUDED.adapter_key), enabled=TRUE, updated_at=EXCLUDED.updated_at
+    RETURNING *`;
+  return mapMonitoredAgent(rows[0] as Record<string, unknown>);
+}
+
+export async function listMonitoredAgents(dueOnly = false, limit = 100): Promise<MonitoredAgentRecord[]> {
+  const sql = database();
+  const rows = dueOnly ? await sql`SELECT * FROM monitored_agents WHERE enabled=TRUE AND next_check_at <= NOW() ORDER BY next_check_at ASC LIMIT ${limit}` : await sql`SELECT * FROM monitored_agents ORDER BY created_at DESC LIMIT ${limit}`;
+  return rows.map((row) => mapMonitoredAgent(row as Record<string, unknown>));
+}
+export async function findMonitoredAgentByEndpoint(endpointUrl:string):Promise<MonitoredAgentRecord|null> { const sql=database(); const rows=await sql`SELECT * FROM monitored_agents WHERE endpoint_url=${endpointUrl} LIMIT 1`; return rows.length ? mapMonitoredAgent(rows[0] as Record<string,unknown>) : null; }
+
+export async function updateMonitoredAgentObservation(endpointUrl: string, status: string, intervalSeconds: number) {
+  const sql = database(); const now = new Date(); const next = new Date(now.getTime() + intervalSeconds * 1000).toISOString();
+  await sql`UPDATE monitored_agents SET latest_status=${status}, consecutive_failures=CASE WHEN ${status}='HEALTHY' THEN 0 ELSE consecutive_failures+1 END, last_checked_at=${now.toISOString()}, next_check_at=${next}, updated_at=${now.toISOString()} WHERE endpoint_url=${endpointUrl}`;
+}
+
+export type RecoveryActionRecord = { id:string; incidentId:string; actionType:string; status:string; detail:string; startedAt:string; completedAt:string | null };
+export async function insertRecoveryAction(action: RecoveryActionRecord) { const sql=database(); await sql`INSERT INTO recovery_actions (id, incident_id, action_type, status, detail, started_at, completed_at) VALUES (${action.id},${action.incidentId},${action.actionType},${action.status},${action.detail},${action.startedAt},${action.completedAt})`; }
+export async function listRecoveryActions(incidentId:string):Promise<RecoveryActionRecord[]> { const sql=database(); const rows=await sql`SELECT * FROM recovery_actions WHERE incident_id=${incidentId} ORDER BY started_at ASC`; return rows.map((row) => { const value=row as Record<string,unknown>; return { id:String(value.id), incidentId:String(value.incident_id), actionType:String(value.action_type), status:String(value.status), detail:String(value.detail), startedAt:new Date(String(value.started_at)).toISOString(), completedAt:value.completed_at ? new Date(String(value.completed_at)).toISOString() : null }; }); }
 
 export async function insertReliabilityProbe(probe: {
   id: string; agentName: string; endpointUrl: string; status: string; startedAt: string;
@@ -198,6 +285,20 @@ export async function listIncidents(limit = 50): Promise<IncidentRecord[]> {
     incident_type, severity, status, claim, requested_outcome, evidence_urls, created_at, updated_at
     FROM incidents ORDER BY updated_at DESC LIMIT ${limit}`;
   return rows.map((row) => mapIncident(row as Record<string, unknown>));
+}
+
+export async function findOpenIncidentByEndpoint(endpointUrl: string): Promise<IncidentRecord | null> {
+  const sql = database();
+  const rows = await sql`SELECT id, public_slug, agent_name, agent_id, endpoint_url, opened_by,
+    incident_type, severity, status, claim, requested_outcome, evidence_urls, created_at, updated_at
+    FROM incidents WHERE endpoint_url = ${endpointUrl} AND status NOT IN ('RESOLVED', 'RESTORED')
+    ORDER BY updated_at DESC LIMIT 1`;
+  return rows.length === 0 ? null : mapIncident(rows[0] as Record<string, unknown>);
+}
+
+export async function updateIncidentStatus(id: string, status: "OPEN" | "INVESTIGATING" | "RESTORED" | "RESOLVED") {
+  const sql = database();
+  await sql`UPDATE incidents SET status = ${status}, updated_at = ${new Date().toISOString()} WHERE id = ${id}`;
 }
 
 export type ReliabilityProbeRecord = {

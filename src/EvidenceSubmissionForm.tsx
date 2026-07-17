@@ -27,8 +27,12 @@ export default function EvidenceSubmissionForm({ task }: Props) {
     setMessage(null);
     if (!window.ethereum) { setMessage({ type: "error", text: "No browser EVM wallet was detected." }); return; }
     try {
-      const chainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (chainId !== "0xc4") { setMessage({ type: "error", text: "Switch your wallet to X Layer mainnet (chain ID 196) before signing." }); return; }
+      let chainId = await window.ethereum.request({ method: "eth_chainId" });
+      if (chainId !== "0xc4") {
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0xc4" }] });
+        chainId = await window.ethereum.request({ method: "eth_chainId" });
+      }
+      if (chainId !== "0xc4") { setMessage({ type: "error", text: "Your wallet did not switch to X Layer mainnet (chain ID 196)." }); return; }
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       const address = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
       if (!address) throw new Error("The wallet did not return an address.");
@@ -60,5 +64,5 @@ export default function EvidenceSubmissionForm({ task }: Props) {
     finally { setBusy(false); }
   }
 
-  return <section className="submission-form"><div className="wallet-row"><div><span className="eyebrow">Signer</span><strong>{wallet ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : "Wallet not connected"}</strong></div><button className="outline-button" onClick={() => void connectWallet()} disabled={busy}>{wallet ? "Reconnect wallet" : "Connect wallet"}</button></div><label>Observation<textarea value={statement} onChange={(event) => setStatement(event.target.value)} placeholder="Describe only what you personally observed." maxLength={20000} /></label><label>Optional supporting text<textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="If you include supporting text, it will be hashed before signing." maxLength={1000000} /></label><button className="primary-button" onClick={() => void submit()} disabled={busy}>{busy ? "Signing and submitting…" : "Sign and submit evidence"}</button>{message ? <p className={`form-message ${message.type}`} role="status">{message.text}</p> : null}</section>;
+  return <section className="submission-form"><div className="wallet-row"><div><span className="kicker">SIGNING WALLET</span><strong>{wallet ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : "Not connected"}</strong><small>Message signature · no gas fee</small></div><button className="button-secondary" onClick={() => void connectWallet()} disabled={busy}>{wallet ? "Reconnect" : "Connect X Layer wallet"}</button></div><label><span>What did you observe?</span><textarea value={statement} onChange={(event) => setStatement(event.target.value)} placeholder="State only what you personally observed. Avoid conclusions you cannot verify." maxLength={20000} /></label><label><span>Supporting text <small>optional</small></span><textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Included text is hashed before signing." maxLength={1000000} /></label><button className="button-primary" onClick={() => void submit()} disabled={busy}>{busy ? "Signing evidence…" : "Sign and send for review"}</button>{message ? <p className={`form-message ${message.type}`} role="status">{message.text}</p> : null}</section>;
 }

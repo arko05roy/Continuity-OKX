@@ -6,6 +6,7 @@ import { generateContinuityRecord, hashRecord } from "../src/records";
 import { buildReliabilityProfile } from "../src/reliability";
 import { a2aInvestigationRequest, quoteFitsBudget, transitionA2A } from "../src/a2a";
 import { a2mcpMode } from "../src/payments";
+import { canExecuteAutomaticRecovery, resolveAdapterKey } from "../src/adapters";
 
 test("rejects non-HTTPS endpoints", async () => {
   await assert.rejects(() => assertSafeEndpoint("http://example.com"), /HTTPS/);
@@ -114,4 +115,15 @@ test("A2MCP defaults to free mode and requires explicit paid opt-in", () => {
   assert.equal(a2mcpMode(), "paid");
   if (previous === undefined) delete process.env.A2MCP_MODE;
   else process.env.A2MCP_MODE = previous;
+});
+
+test("recovery adapters cannot be claimed by copying a trusted route path", () => {
+  assert.equal(resolveAdapterKey("https://attacker.example/api/agents/research-coordinator/health", "https://continuity.example"), null);
+  assert.equal(resolveAdapterKey("https://continuity.example/api/agents/research-coordinator/health", "https://continuity.example"), "research-coordinator");
+});
+
+test("automatic recovery requires policy permission and a compatible adapter", () => {
+  assert.equal(canExecuteAutomaticRecovery("AUTO_RECOVER", "research-coordinator"), true);
+  assert.equal(canExecuteAutomaticRecovery("RETRY_AND_ESCALATE", "research-coordinator"), false);
+  assert.equal(canExecuteAutomaticRecovery("AUTO_RECOVER", null), false);
 });
