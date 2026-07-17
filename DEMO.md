@@ -462,3 +462,17 @@ Unsafe claims:
 
 - [OKX.AI A2MCP guide](https://web3.okx.com/onchainos/dev-docs/okxai/howtomcp)
 - [OKX.AI A2A guide](https://web3.okx.com/onchainos/dev-docs/okxai/how-to-become-a2a)
+
+## 14. Verified production rehearsal
+
+Verified on 2026-07-17 after the agent-first build was deployed:
+
+- Research Coordinator returned a real HTTP `503` after the private failure trigger.
+- The persistent `worker:watch` process detected the failure on its scheduled cycle.
+- The compatible recovery adapter ran without a recovery click.
+- An independent follow-up probe returned HTTP `200`.
+- The incident became `RESTORED`.
+- Continuity issued a `RESTORED / HIGH` recovery record: [live recovery record](https://continuity-okx.vercel.app/records/1114f778-4609-4eb7-90fe-d78cc01af906).
+- Final dashboard state was one monitored agent, zero open incidents, and zero pending evidence tasks.
+
+The CLI and persistent watcher also include bounded retries for transient production `5xx` responses. For the actual recording, start `npm run worker:watch` first and trigger only `npm run agent:fail`; do not run `worker run`, `agent:healthy`, or any recovery command after the failure.
