@@ -14,11 +14,18 @@ async function tick() {
   if (running || stopping) return;
   running = true;
   try {
-    const response = await fetch(`${baseUrl}/api/cron/monitor`, {
-      headers: { authorization: `Bearer ${secret}` },
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+    let body = {};
+    let lastError = "Worker request failed";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await fetch(`${baseUrl}/api/cron/monitor`, {
+        headers: { authorization: `Bearer ${secret}` },
+      });
+      body = await response.json().catch(() => ({}));
+      if (response.ok) break;
+      lastError = body.error || `HTTP ${response.status}`;
+      if (response.status < 500 || attempt === 2) throw new Error(lastError);
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
     console.log(`[${timestamp()}] checked=${body.checked} succeeded=${body.succeeded} failed=${body.failed}`);
   } catch (error) {
     console.error(`[${timestamp()}] worker error: ${error instanceof Error ? error.message : String(error)}`);

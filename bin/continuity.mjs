@@ -3,7 +3,7 @@
 const argv=process.argv.slice(2);const json=argv.includes("--json");const args=argv.filter((value)=>value!=="--json");const base=(process.env.CONTINUITY_URL||"https://continuity-okx.vercel.app").replace(/\/$/,"");
 const option=(name,fallback)=>{const index=args.indexOf(`--${name}`);return index>=0?args[index+1]:fallback};
 const required=(name)=>{const value=option(name);if(!value)throw new Error(`--${name} is required`);return value};
-async function request(path,init){const response=await fetch(`${base}${path}`,init);const body=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(!response.ok)throw new Error(body.error||`HTTP ${response.status}`);return body;}
+async function request(path,init){const readOnly=!init?.method||init.method.toUpperCase()==="GET";const attempts=readOnly?3:1;let lastBody=null;for(let attempt=0;attempt<attempts;attempt++){const response=await fetch(`${base}${path}`,init);const body=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(response.ok)return body;lastBody=body;if(!(response.status>=500&&response.status<=599)||attempt===attempts-1)throw new Error(body.error||`HTTP ${response.status}`);await new Promise((resolve)=>setTimeout(resolve,250*(attempt+1)));}throw new Error(lastBody?.error||"Request failed");}
 const print=(value)=>{if(json)return console.log(JSON.stringify(value));console.log(JSON.stringify(value,null,2));};
 const help=()=>console.log(`Continuity CLI
 
