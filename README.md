@@ -224,7 +224,8 @@ Machine discovery: `GET /.well-known/agent.json` or `GET /api/v1/capabilities`.
 | `app/evidence-tasks/[taskId]/page.tsx` | Verifier workspace. |
 | `app/records/[recordId]/page.tsx` | Public Continuity Record. |
 | `app/api/v1/` | Core, review, record, profile, and A2A route handlers. |
-| `app/api/cron/monitor/route.ts` | Scheduled autonomous monitor worker. |
+| `app/api/cron/monitor/route.ts` | Authenticated autonomous worker entry point. |
+| `scripts/monitor-worker.mjs` | Persistent free worker that evaluates due contracts without Vercel Cron. |
 | `bin/continuity.mjs` | Agent- and terminal-friendly CLI. |
 | `test/probe.test.ts` | 14 focused automated tests. |
 

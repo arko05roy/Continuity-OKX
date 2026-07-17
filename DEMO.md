@@ -57,18 +57,19 @@ The production deployment must contain these values in Vercel → Project → Se
 
 After changing any production environment variable, redeploy. Existing deployments do not inherit newly added values.
 
-### Scheduler limitation to check before deployment
+### Worker model for the free demo
 
-`vercel.json` requests a one-minute schedule. Vercel Pro and Enterprise support per-minute cron execution. Vercel Hobby currently permits only once-daily schedules, so a one-minute cron configuration can fail deployment on Hobby.
+The project does not depend on Vercel Cron. `npm run worker:watch` is a persistent authenticated worker that polls the production worker endpoint every 15 seconds. The endpoint still evaluates each contract’s own due time, so a one-minute contract is observed no more frequently than its policy allows.
 
-For the recorded demo, the safe free path is:
+Start this process once before rehearsal or recording and leave it running in a hidden terminal:
 
-1. Keep the worker endpoint and authentication exactly as implemented.
-2. Trigger one worker invocation privately with `npm run cli -- worker run` after the agent is due.
-3. Do not show that terminal command in the video.
-4. Do not describe the private invocation as a human recovery action; it only invokes the same autonomous worker that evaluates all due contracts.
+```bash
+npm run worker:watch
+```
 
-For continuous production polling, use Vercel Pro or attach a free external scheduler that sends `GET /api/cron/monitor` with `Authorization: Bearer <CRON_SECRET>`. Never put the secret in a URL.
+This is materially different from invoking a recovery command after seeing a failure: the worker is already alive, checks every due agent, and owns the lifecycle before the failure is staged. After `npm run agent:fail`, do not run `worker run`, `agent:healthy`, or any recovery command.
+
+For always-on production operation after the hackathon, run the same watcher under a process supervisor on a small worker host, or attach an external scheduler to `GET /api/cron/monitor` with the bearer header. Never put `CRON_SECRET` in a URL.
 
 ## 4. One-time production deployment
 
@@ -117,7 +118,7 @@ For continuous production polling, use Vercel Pro or attach a free external sche
 
 6. Open the production dashboard. It must show real Neon data and must not show “Telemetry unavailable.”
 
-7. If the deployment supports Vercel cron, open Vercel → Project → Settings → Cron Jobs and confirm `/api/cron/monitor` is registered. Vercel invokes cron only on production deployments.
+7. Start `npm run worker:watch` locally and confirm its first line names the production origin. A healthy idle cycle may correctly report `checked=0` when no contract is due.
 
 ## 5. Rehearsal preparation
 
@@ -190,6 +191,14 @@ Do not repeatedly re-register immediately before invoking the worker because reg
 
 ## 6. Full end-to-end rehearsal
 
+Before Step 1, start the autonomous watcher in a separate terminal and leave it running:
+
+```bash
+npm run worker:watch
+```
+
+Do not start or touch this terminal again during the failure and recovery sequence.
+
 ### Step 1 — Start healthy
 
 ```bash
@@ -220,21 +229,17 @@ curl -i https://continuity-okx.vercel.app/api/agents/research-coordinator/health
 
 Expected result: HTTP `503`.
 
-### Step 4 — Invoke or await the autonomous worker
+### Step 4 — Let the autonomous worker observe it
 
-If production cron is active, wait for it. For a deterministic rehearsal or free-hosting fallback:
+Take no recovery action. The already-running watcher will invoke the authenticated worker endpoint. Because it polls every 15 seconds, it should pick up the agent on the first poll after `nextCheckAt`.
 
-```bash
-npm run cli -- worker run
-```
-
-Expected worker output:
+Expected watcher output:
 
 - `checked` is at least `1`.
 - `succeeded` is at least `1`.
 - `failed` is `0` for this target.
 
-The worker itself must perform the complete chain: probe → incident → adapter → verification → record. Do not call `agent:healthy` after the failure; doing so would bypass the recovery proof.
+The worker itself must perform the complete chain: probe → incident → adapter → verification → record. Do not run `worker run` or call `agent:healthy` after the failure; doing so would bypass the autonomous proof.
 
 ### Step 5 — Verify the recovery independently
 
@@ -277,7 +282,7 @@ Do not record until this rehearsal succeeds once from beginning to end.
   3. The latest incident, if using a clean edit after recovery
   4. The latest recovery record
   5. The capability manifest
-- Record one clean private cut while the failure trigger and worker invocation happen off-screen.
+- Record one clean private cut while only the controlled failure trigger happens off-screen. The watcher must already be running.
 - Target 82–87 seconds so X transcoding does not push the video over 90 seconds.
 
 ## 8. Exact 87-second shot list
@@ -304,10 +309,9 @@ Off-screen actions:
 
 ```bash
 npm run agent:fail
-npm run cli -- worker run
 ```
 
-Only invoke the worker when the contract is due. Cut directly back to the production overview after the command completes.
+The watcher was started before recording. Wait for its next due cycle, then cut directly back to the production overview after recovery completes.
 
 ### 0:25–0:49 — Show autonomous recovery
 
@@ -384,7 +388,7 @@ Unsafe claims:
 - The variable was added to Preview but not Production.
 - The project was not redeployed after the variable changed.
 
-### `worker run` returns 401
+### `worker:watch` repeatedly reports 401
 
 - `CRON_SECRET` differs between `.env.local` and Vercel.
 - `CONTINUITY_URL` points at a different deployment.
@@ -411,11 +415,11 @@ Unsafe claims:
 - Do not issue or show a `RESTORED` claim manually.
 - Reset to healthy, diagnose the deployment, and repeat the rehearsal from a due contract.
 
-### Vercel rejects the cron schedule
+### Watcher reports connection errors
 
-- The project is likely on Hobby, which does not support per-minute cron.
-- Use the private authenticated `worker run` invocation for the recording.
-- For persistent free operation, configure an external scheduler with the bearer header; for Vercel-native per-minute operation, use Pro or Enterprise.
+- Confirm `CONTINUITY_URL` is the production HTTPS origin.
+- Confirm the production deployment is healthy.
+- Leave the watcher running; it catches the next interval after connectivity returns.
 
 ## 11. After recording
 
@@ -441,7 +445,8 @@ Unsafe claims:
 - [ ] Dashboard reads real Neon data.
 - [ ] Research Coordinator returns HTTP 200 before failure.
 - [ ] Registration shows `AUTO_RECOVER` and the trusted adapter.
-- [ ] The contract is due before the worker invocation.
+- [ ] `worker:watch` was started before recording and is polling successfully.
+- [ ] The contract becomes due while the watcher is already running.
 - [ ] Failure produces a real HTTP 503.
 - [ ] No `agent:healthy` command is used after failure.
 - [ ] Worker completes with no failed target.
@@ -455,8 +460,5 @@ Unsafe claims:
 
 ## 13. Operational references
 
-- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
-- [Securing Vercel Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
-- [Vercel cron plan limits and scheduling precision](https://vercel.com/docs/cron-jobs/usage-and-pricing)
 - [OKX.AI A2MCP guide](https://web3.okx.com/onchainos/dev-docs/okxai/howtomcp)
 - [OKX.AI A2A guide](https://web3.okx.com/onchainos/dev-docs/okxai/how-to-become-a2a)

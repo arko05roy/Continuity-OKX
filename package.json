@@ -13,6 +13,7 @@
     "agent:healthy": "node --env-file-if-exists=.env.local scripts/control-agent.mjs HEALTHY",
     "agent:fail": "node --env-file-if-exists=.env.local scripts/control-agent.mjs FAILED",
     "agent:recovering": "node --env-file-if-exists=.env.local scripts/control-agent.mjs RECOVERING",
+    "worker:watch": "node --env-file-if-exists=.env.local scripts/monitor-worker.mjs",
     "cli": "node --env-file-if-exists=.env.local bin/continuity.mjs"
   },
   "dependencies": {
